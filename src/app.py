@@ -1,7 +1,9 @@
 import streamlit as st
 import pandas as pd
+import subprocess
+import sys
 from datetime import datetime
-from tasks import load_tasks, save_tasks, filter_tasks_by_priority, filter_tasks_by_category
+from tasks import load_tasks, save_tasks, filter_tasks_by_priority, filter_tasks_by_category, generate_unique_id
 
 def main():
     st.title("To-Do Application")
@@ -23,7 +25,7 @@ def main():
         
         if submit_button and task_title:
             new_task = {
-                "id": len(tasks) + 1,
+                "id": generate_unique_id(tasks), # BUGFIX: Use the function to generate correct ID
                 "title": task_title,
                 "description": task_description,
                 "priority": task_priority,
@@ -59,15 +61,15 @@ def main():
     
     # Display tasks
     for task in filtered_tasks:
-        col1, col2 = st.columns([4, 1])
-        with col1:
+        task_col1, task_col2 = st.columns([4, 1]) # BUGFIX: The 'col1' and 'col2' variable names were rused here before
+        with task_col1:
             if task["completed"]:
                 st.markdown(f"~~**{task['title']}**~~")
             else:
                 st.markdown(f"**{task['title']}**")
             st.write(task["description"])
             st.caption(f"Due: {task['due_date']} | Priority: {task['priority']} | Category: {task['category']}")
-        with col2:
+        with task_col2:
             if st.button("Complete" if not task["completed"] else "Undo", key=f"complete_{task['id']}"):
                 for t in tasks:
                     if t["id"] == task["id"]:
@@ -78,6 +80,38 @@ def main():
                 tasks = [t for t in tasks if t["id"] != task["id"]]
                 save_tasks(tasks)
                 st.rerun()
+
+    # Tests
+    if "test_result" not in st.session_state:
+        st.session_state.test_result = ""
+    if "test_ran" not in st.session_state:
+        st.session_state.test_ran = False
+
+    # Run Tests Button
+    if st.sidebar.button("Run Unit Tests"):
+        st.sidebar.write("Running tests...")
+        result = subprocess.run(
+            [sys.executable, "-m", "pytest", "--maxfail=1", "--disable-warnings", "tests/test_basic.py", "--cov=src"],
+            capture_output=True,
+            text=True
+        )
+        st.session_state.test_result = result.stdout
+        st.session_state.test_ran = True
+
+        if result.returncode != 0:
+            st.sidebar.error("Some tests failed.")
+        else:
+            st.sidebar.success("All tests passed!")
+
+    # Clear Button
+    if st.sidebar.button("Clear Test Output"):
+        st.session_state.test_result = ""
+        st.session_state.test_ran = False
+
+    # Display test output if available
+    if st.session_state.test_ran and st.session_state.test_result:
+        with st.sidebar.expander("Test Output"):
+            st.text(st.session_state.test_result)
 
 if __name__ == "__main__":
     main()
