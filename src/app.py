@@ -4,6 +4,7 @@ import subprocess
 import sys
 from datetime import datetime
 from tasks import load_tasks, save_tasks, filter_tasks_by_priority, filter_tasks_by_category, generate_unique_id
+from tdd import mark_all_tasks_completed, sort_tasks_by_due_date, sort_tasks_by_priority
 
 def main():
     st.title("To-Do Application")
@@ -58,6 +59,20 @@ def main():
         filtered_tasks = filter_tasks_by_priority(filtered_tasks, filter_priority)
     if not show_completed:
         filtered_tasks = [task for task in filtered_tasks if not task["completed"]]
+
+    # New sort task features
+    sort_option = st.selectbox("Sort Tasks By", ["Default", "Due Date", "Priority"])
+    if sort_option == "Due Date":
+        filtered_tasks = sort_tasks_by_due_date(filtered_tasks)
+    elif sort_option == "Priority":
+        filtered_tasks = sort_tasks_by_priority(filtered_tasks)
+    
+    # New feature to mark all as complete
+    if st.button("Mark All Tasks as Completed"):
+        tasks = mark_all_tasks_completed(tasks)
+        save_tasks(tasks)
+        st.success("All tasks marked as completed.")
+        st.rerun()
     
     # Display tasks
     for task in filtered_tasks:
@@ -81,17 +96,51 @@ def main():
                 save_tasks(tasks)
                 st.rerun()
 
-    # Tests
+    # Tests session state
+    st.sidebar.header("Tests")
+
     if "test_result" not in st.session_state:
         st.session_state.test_result = ""
     if "test_ran" not in st.session_state:
         st.session_state.test_ran = False
 
-    # Run Tests Button
+    # Run Unit Tests
     if st.sidebar.button("Run Unit Tests"):
-        st.sidebar.write("Running tests...")
+        st.sidebar.write("Running unit tests...")
         result = subprocess.run(
-            [sys.executable, "-m", "pytest", "--maxfail=1", "--disable-warnings", "tests/test_basic.py", "--cov=src"],
+            [sys.executable, "-m", "pytest", "--maxfail=1", "--disable-warnings", "tests/test_basic.py"],
+            capture_output=True,
+            text=True
+        )
+        st.session_state.test_result = result.stdout
+        st.session_state.test_ran = True
+
+        if result.returncode != 0:
+            st.sidebar.error("Some tests failed.")
+        else:
+            st.sidebar.success("All tests passed!")
+
+    # Run Coverage Test
+    if st.sidebar.button("Run Coverage Test"):
+        st.sidebar.write("Running coverage tests...")
+        result = subprocess.run(
+            [sys.executable, "-m", "pytest", "--cov=src", "tests/test_basic.py", "tests/test_tdd.py"],
+            capture_output=True,
+            text=True
+        )
+        st.session_state.test_result = result.stdout
+        st.session_state.test_ran = True
+
+        if result.returncode != 0:
+            st.sidebar.error("Coverage test failed.")
+        else:
+            st.sidebar.success("Coverage test passed.")
+    
+    # Run TDD Tests
+    if st.sidebar.button("Run TDD Tests"):
+        st.sidebar.write("Running TDD tests...")
+        result = subprocess.run(
+            [sys.executable, "-m", "pytest", "--maxfail=1", "--disable-warnings", "tests/test_tdd.py"],
             capture_output=True,
             text=True
         )
@@ -108,10 +157,11 @@ def main():
         st.session_state.test_result = ""
         st.session_state.test_ran = False
 
-    # Display test output if available
+    # Display Test Output
     if st.session_state.test_ran and st.session_state.test_result:
         with st.sidebar.expander("Test Output"):
             st.text(st.session_state.test_result)
+
 
 if __name__ == "__main__":
     main()
