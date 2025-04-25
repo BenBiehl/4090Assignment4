@@ -33,7 +33,8 @@ def main():
         task_due_date = st.date_input("Due Date")
         submit_button = st.form_submit_button("Add Task")
         
-        if submit_button and task_title:
+        # BUGFIX: Make sure all fields are filled out before you can submit
+        if submit_button and task_title and task_description and task_priority and task_category and task_due_date:
             new_task = {
                 "id": generate_unique_id(tasks), # BUGFIX: Use the function to generate correct ID
                 "title": task_title,
@@ -47,6 +48,8 @@ def main():
             tasks.append(new_task)
             save_tasks(tasks)
             st.sidebar.success("Task added successfully!")
+        else:
+            st.sidebar.error("Please fill in all required fields.")
     
     # Main area to display tasks
     st.header("Your Tasks")

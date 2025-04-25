@@ -94,3 +94,32 @@ for task in filtered_tasks:
     task_col1, task_col2 = st.columns([4, 1])
 
 ```
+
+- **`Title`** - #03 Incorrect Checking before submitting task
+- **`Environment`** - All OS's, using streamlit command
+- **`Steps to Reproduce`** - Run the app, and create a task without filling out fields
+- **`Priority`** - High, could lead to significant problems if not fixed
+
+### Code Before and After
+
+```python
+
+# Only checked if there was a title
+if submit_button and task_title:
+
+```
+
+Before the code only checked if there was a title. Without the other parameters
+the filtering and sorting could be messed up, so I changed it to check that all
+fields are filled, otherwise it doesn't submit.
+
+```python
+
+# Now checks all fields
+if submit_button and task_title and task_description and task_priority and task_category and task_due_date:
+...
+# And gives error if they aren't all filled
+else:
+    st.sidebar.error("Please fill in all required fields.")
+
+```
