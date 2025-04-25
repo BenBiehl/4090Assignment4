@@ -16,6 +16,7 @@ from tasks import (
 
 TEST_FILE = "test_file.json"
 
+# Use of fixture feature
 @pytest.fixture
 def test_tasks():
     return [
